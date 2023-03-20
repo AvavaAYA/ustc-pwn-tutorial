@@ -3,9 +3,9 @@
 *   [0. 准备工作](./0.准备工作/README.md)
     *   [0.0 环境介绍](./0.准备工作/0.0.环境介绍.md)
     *   [0.1 pwntools 和 pwncli](./0.准备工作/0.1.pwntools.md)
-    *   [0.2 gdb 和 pwndbg]()
-    *   [0.3 libc 和 patchelf 以及 glibc-all-in-one]()
-    *   [**0.4 程序是怎么运行的**]()
+    *   [0.2 gdb 和 pwndbg](./0.准备工作/0.2.gdb.md)
+    *   [0.3 libc 和 patchelf 以及 glibc-all-in-one](./0.准备工作/0.3.libc.md)
+    *   [**0.4 程序是怎么运行的**](./0.准备工作/0.4.elf.md)
 
 *   [1. 基础 ROP](./1.基础rop/README.md)
     *   [1.0 ROP 介绍](./1.基础rop/rop.md)

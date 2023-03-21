@@ -8,6 +8,7 @@ context.log_level = "debug"
 
 p = process("./hellopwntools")
 
+print(p.pid)
 input()
 p.recvuntil(b'Welcome to Magical Mystery Tour! Give me your magic number: \n')
 p.sendline(p64(0xdeadbeef))

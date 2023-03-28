@@ -12,7 +12,7 @@
     *   [1.1 简单的 ROP 链](./1.基础rop/1.1.ropchain.md)
     *   [1.2 ret2shellcode](./1.基础rop/1.2.shellcode.md)
     *   [1.3 ret2libc](./1.基础rop/1.3.ret2libc.md)
-    *   [1.4 构造循环与栈迁移](./1.基础rop/1.4.advancerop.md)
-    *   [1.5 SROP](./1.基础rop/1.5.srop.md)
+    <!-- *   [1.4 构造循环与栈迁移](./1.基础rop/1.4.advancerop.md) -->
+    <!-- *   [1.5 SROP](./1.基础rop/1.5.srop.md) -->
 
 *   [2. 格式化字符串]()

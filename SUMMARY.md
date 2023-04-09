@@ -12,7 +12,7 @@
     * [简单的 ROP 链](./chp1-rop/ropchain.md)
     * [ret2shellcode](./chp1-rop/shellcode.md)
     * [ret2libc](./chp1-rop/ret2libc.md)
-    * [构造循环与栈迁移](./chp1-rop/advancerop.md)
+    <!-- * [构造循环与栈迁移](./chp1-rop/advancerop.md) -->
     <!-- * [SROP](./chp1-rop/srop.md) -->
 * [进阶内容](./chp2-advanced/README.md)
     * [格式化字符串漏洞](./chp2-advanced/fmtstr.md)

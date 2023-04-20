@@ -14,6 +14,7 @@
     * [ret2libc](./chp1-rop/ret2libc.md)
     <!-- * [构造循环与栈迁移](./chp1-rop/advancerop.md) -->
     <!-- * [SROP](./chp1-rop/srop.md) -->
-* [进阶内容](./chp2-advanced/README.md)
-    * [格式化字符串漏洞](./chp2-advanced/fmtstr.md)
-    * [堆](./chp2-advanced/heap.md)
+* [格式化字符串](./chp2-fmtstr/README.md)
+    * [格式化字符串漏洞](./chp2-fmtstr/fmtstr.md)
+* [堆](./chp3-heap/README.md)
+    * [堆利用](./chp3-heap/heap.md)

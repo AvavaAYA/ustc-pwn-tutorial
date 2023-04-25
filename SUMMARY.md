@@ -1,8 +1,9 @@
 # Summary
 
 * [前言](README.md)
-    * [pwn](./chp0-preparations/introduction.md)
+    * [pwn](OUTLINE.md)
 * [准备工作](./chp0-preparations/README.md)
+    * [环境介绍](./chp0-preparations/introduction.md)
     * [pwntools 和 pwncli](./chp0-preparations/pwntools.md)
     * [gdb 和 pwndbg](./chp0-preparations/gdb.md)
     * [libc 和 patchelf 以及 glibc-all-in-one](./chp0-preparations/libc.md)
@@ -18,3 +19,6 @@
     * [格式化字符串漏洞](./chp2-fmtstr/fmtstr.md)
 * [堆](./chp3-heap/README.md)
     * [堆利用](./chp3-heap/heap.md)
+
+* [内核](./chpf-kernel/README.md)
+    * [ROP](./chpf-kernel/krop.md)

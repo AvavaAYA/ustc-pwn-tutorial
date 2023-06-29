@@ -13,12 +13,14 @@
     * [简单的 ROP 链](./chp1-rop/ropchain.md)
     * [ret2shellcode](./chp1-rop/shellcode.md)
     * [ret2libc](./chp1-rop/ret2libc.md)
-    <!-- * [构造循环与栈迁移](./chp1-rop/advancerop.md) -->
-    <!-- * [SROP](./chp1-rop/srop.md) -->
+    * [构造循环与栈迁移](./chp1-rop/advancerop.md)
+    * [SROP](./chp1-rop/srop.md)
 * [格式化字符串](./chp2-fmtstr/README.md)
     * [格式化字符串漏洞](./chp2-fmtstr/fmtstr.md)
 * [堆](./chp3-heap/README.md)
     * [堆利用](./chp3-heap/heap.md)
 
+* [科大网安特色-llvm]()
 * [内核](./chpf-kernel/README.md)
     * [ROP](./chpf-kernel/krop.md)
+	* [slab]()

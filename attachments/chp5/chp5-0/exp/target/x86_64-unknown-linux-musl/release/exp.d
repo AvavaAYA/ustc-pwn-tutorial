@@ -1,0 +1,1 @@
+/root/workspace/ustc-pwn-tutorial/attachments/chp5/chp5-0/chal_core/exp/target/x86_64-unknown-linux-musl/release/exp: /root/workspace/ustc-pwn-tutorial/attachments/chp5/chp5-0/chal_core/exp/src/main.rs

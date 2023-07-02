@@ -10,7 +10,7 @@ insmod sudrv.ko
 mknod /dev/meizijiutql c 233 0
 chmod 666 /dev/meizijiutql
 mdev -s
-sysctl kernel.dmesg_restrict=0 
+sysctl kernel.dmesg_restrict=0
 # echo "7 7 7 7" > /proc/sys/kernel/printk
 setsid /bin/cttyhack setuidgid 1000 /bin/sh
 # /bin/sh

